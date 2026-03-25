@@ -1,0 +1,58 @@
+---
+import Base from '../../../layouts/Base.astro';
+import DocumentView from '../../../components/DocumentView.astro';
+import { t, getLangFromUrl, localePath, formatDate } from '../../../i18n/index.ts';
+import { getIssueById, getDocumentsByIssue } from '../../../lib/d1.ts';
+import type { Lang } from '@rtg/shared';
+import { env } from 'cloudflare:workers';
+
+const lang = getLangFromUrl(Astro.url) as Lang;
+const rawId = Astro.params.id;
+const id = Number(rawId);
+
+if (!rawId || Number.isNaN(id)) {
+  return Astro.redirect(`/${lang}/`, 302);
+}
+
+const db = env.DB;
+
+const issue = await getIssueById(db, id);
+if (!issue) {
+  return new Response(null, { status: 404 });
+}
+
+const documents = await getDocumentsByIssue(db, id, lang);
+
+const formattedDate = formatDate(issue.publishedDate, lang);
+const pageTitle = `${t(lang, 'issue.vol')} ${issue.volume} · ${t(lang, 'issue.sec')} ${issue.section} — ${formattedDate}`;
+---
+<Base title={pageTitle}>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href={localePath(lang, '/')}>&larr; {t(lang, 'issue.backToIssues')}</a>
+  </nav>
+
+  <header class="issue-header">
+    <h1 class="page-title">
+      {t(lang, 'issue.vol')} {issue.volume} · {t(lang, 'issue.sec')} {issue.section}
+    </h1>
+    <p class="page-subtitle">
+      <time datetime={issue.publishedDate}>{formattedDate}</time>
+      &nbsp;&middot;&nbsp;
+      {t(lang, `series.${issue.series}`)}
+      &nbsp;&middot;&nbsp;
+      {documents.length} {t(lang, 'issue.documents')}
+    </p>
+  </header>
+
+  {documents.length === 0 ? (
+    <div class="no-content">
+      <p>{t(lang, 'digest.noEntries')}</p>
+    </div>
+  ) : (
+    <div class="issue-documents">
+      {documents.map((doc) => (
+        <DocumentView doc={doc} lang={lang} standalone={false} />
+      ))}
+    </div>
+  )}
+</Base>

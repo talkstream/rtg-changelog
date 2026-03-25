@@ -1,5 +1,5 @@
 import type { APIContext } from 'astro';
-import { searchEntries } from '../../lib/d1.ts';
+import { searchDocuments } from '../../lib/d1.ts';
 import type { Lang } from '@rtg/shared';
 import { SUPPORTED_LANGS } from '@rtg/shared';
 import { env } from 'cloudflare:workers';
@@ -19,7 +19,7 @@ export async function GET(context: APIContext): Promise<Response> {
 
   const db = env.DB;
 
-  const results = await searchEntries(db, q, lang);
+  const results = await searchDocuments(db, q, lang);
 
   return Response.json(
     { query: q, lang, count: results.length, results },

@@ -15,8 +15,12 @@ database_id = "ee055099-632f-418a-a234-436e67af936b"
 binding = "KV"
 id = "96ca4301dd2e4170b193d2875abac959"
 
+[[r2_buckets]]
+binding = "PDF_STORE"
+bucket_name = "rtg-pdfs"
+
 [vars]
-GEMINI_MODEL = "gemini-3.1-pro"
+GEMINI_MODEL = "gemini-3-flash-preview"
 BATCH_SIZE = "15"
 
 [observability]

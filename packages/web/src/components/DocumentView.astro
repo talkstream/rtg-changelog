@@ -1,0 +1,124 @@
+---
+import SeriesBadge from './SeriesBadge.astro';
+import { t, formatDate } from '../i18n/index.ts';
+import type { Lang } from '@rtg/shared';
+import type { DocumentView } from '../lib/d1.ts';
+
+interface Props {
+  doc: DocumentView;
+  lang: Lang;
+  /** Render as full standalone page (true) or as inline within issue page (false) */
+  standalone?: boolean;
+}
+
+const { doc, lang, standalone = false } = Astro.props;
+const hasHighRelevance = doc.relevanceScore != null && doc.relevanceScore >= 3;
+const relevanceLabel = doc.relevanceScore ? t(lang, `relevance.${doc.relevanceScore}`) : null;
+const effectiveFormatted = doc.effectiveDate ? formatDate(doc.effectiveDate, lang) : null;
+const HeadingTag = standalone ? 'h1' : 'h2';
+---
+<article class="document-view" id={standalone ? undefined : `doc-${doc.id}`}>
+  {/* Title */}
+  <HeadingTag class="document-title" lang={lang}>
+    {doc.title}
+  </HeadingTag>
+
+  {/* Original Thai title (when not viewing in Thai) */}
+  {lang !== 'th' && (
+    <p class="document-title-th" lang="th">
+      {doc.titleTh}
+    </p>
+  )}
+
+  {/* Metadata */}
+  <dl class="document-meta">
+    {doc.series && (
+      <>
+        <div class="document-meta-item">
+          <dt class="sr-only">Series</dt>
+          <dd><SeriesBadge series={doc.series} lang={lang} /></dd>
+        </div>
+      </>
+    )}
+    {doc.documentType && (
+      <div class="document-meta-item">
+        <dt>{t(lang, 'doc.type')}:</dt>
+        <dd>{doc.documentType}</dd>
+      </div>
+    )}
+    {doc.issuingAuthority && (
+      <div class="document-meta-item">
+        <dt>{t(lang, 'doc.authority')}:</dt>
+        <dd>{doc.issuingAuthority}</dd>
+      </div>
+    )}
+    {effectiveFormatted && (
+      <div class="document-meta-item">
+        <dt>{t(lang, 'doc.effective')}:</dt>
+        <dd><time datetime={doc.effectiveDate!}>{effectiveFormatted}</time></dd>
+      </div>
+    )}
+  </dl>
+
+  {/* Document content separator */}
+  <hr class="document-divider">
+
+  {/* Full text */}
+  {doc.content ? (
+    <div class="document-content" lang={lang === 'th' ? 'th' : lang} set:html={doc.content} />
+  ) : (
+    <p class="document-no-content">{t(lang, 'doc.noContent')}</p>
+  )}
+
+  {/* Relevance section */}
+  {hasHighRelevance && (
+    <>
+      <hr class="document-divider">
+      <div class="document-relevance">
+        <h3 class="document-relevance-heading">{t(lang, 'doc.whoMatters')}</h3>
+        <div class="document-relevance-meta">
+          {relevanceLabel && (
+            <span class={`relevance relevance-${doc.relevanceScore}`}>
+              {relevanceLabel}
+            </span>
+          )}
+          {doc.relevanceTags.length > 0 && (
+            <span class="tags">
+              {doc.relevanceTags.map((tag) => (
+                <span class="tag">{tag}</span>
+              ))}
+            </span>
+          )}
+        </div>
+        {doc.summary && (
+          <p class="document-relevance-summary">{doc.summary}</p>
+        )}
+      </div>
+    </>
+  )}
+
+  {/* Key terms */}
+  {doc.keyTerms.length > 0 && (
+    <div class="document-terms">
+      <strong>{t(lang, 'doc.keyTerms')}:</strong>
+      <span class="tags">
+        {doc.keyTerms.map((term) => (
+          <span class="tag">{term}</span>
+        ))}
+      </span>
+    </div>
+  )}
+
+  {/* Footer: PDF + page */}
+  <footer class="document-footer">
+    {doc.pdfUrl && (
+      <a href={doc.pdfUrl} rel="noopener" target="_blank" hreflang="th">
+        {t(lang, 'digest.viewPdf')} &#8599;
+        <span class="sr-only"> (opens in new tab, Thai)</span>
+      </a>
+    )}
+    {doc.page && (
+      <span>{t(lang, 'digest.page')} {doc.page}</span>
+    )}
+  </footer>
+</article>

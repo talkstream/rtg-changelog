@@ -1,5 +1,5 @@
 import type { APIContext } from 'astro';
-import { getLatestDigests, getDigestEntries } from '../../../lib/d1.ts';
+import { getLatestDocuments } from '../../../lib/d1.ts';
 import type { Lang } from '@rtg/shared';
 import { SUPPORTED_LANGS } from '@rtg/shared';
 import { env } from 'cloudflare:workers';
@@ -12,37 +12,38 @@ export async function GET(context: APIContext): Promise<Response> {
 
   const db = env.DB;
 
-  const digests = await getLatestDigests(db, 20);
+  const documents = await getLatestDocuments(db, lang, 50);
 
   let items = '';
-  for (const d of digests) {
-    const entries = await getDigestEntries(db, d.date, lang);
-    for (const entry of entries) {
-      const entryUrl = `https://rtg.center/${lang}/${d.date}`;
-      items += `
+  for (const doc of documents) {
+    const docUrl = `https://rtg.center/${lang}/doc/${doc.id}`;
+    // Build summary: first 500 chars of content, or summary, or title
+    const excerpt = doc.content
+      ? escapeXml(stripHtml(doc.content).slice(0, 500))
+      : doc.summary
+        ? escapeXml(doc.summary)
+        : escapeXml(doc.title);
+
+    items += `
     <entry>
-      <title>${escapeXml(entry.title)}</title>
-      <link href="${entryUrl}" rel="alternate" type="text/html"/>
-      <id>urn:rtg:${entry.recordId}</id>
-      <updated>${d.date}T00:00:00Z</updated>
-      <summary type="html">${escapeXml(
-        (entry.summary ? `<p>${entry.summary}</p>` : '') +
-        `<p lang="th">${entry.titleTh}</p>` +
-        `<p>Series ${entry.series} · Vol. ${entry.volume} · Sec. ${entry.section}</p>`
-      )}</summary>
-      <category term="${entry.series}"/>
+      <title>${escapeXml(doc.title)}</title>
+      <link href="${docUrl}" rel="alternate" type="text/html"/>
+      <id>urn:rtg:doc:${doc.id}</id>
+      <updated>${doc.publishedDate ?? new Date().toISOString().split('T')[0]}T00:00:00Z</updated>
+      <summary type="html">${excerpt}</summary>${doc.series ? `\n      <category term="${escapeXml(doc.series)}"/>` : ''}${doc.documentType ? `\n      <category term="${escapeXml(doc.documentType)}"/>` : ''}
     </entry>`;
-    }
   }
+
+  const latestDate = documents[0]?.publishedDate ?? new Date().toISOString().split('T')[0];
 
   const feed = `<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="${lang}">
   <title>RTG Digest (${lang.toUpperCase()})</title>
-  <subtitle>Royal Thai Gazette multilingual digest</subtitle>
+  <subtitle>Royal Thai Gazette — full document translations</subtitle>
   <link href="https://rtg.center/${lang}/" rel="alternate" type="text/html"/>
   <link href="https://rtg.center/api/feed/${lang}.xml" rel="self" type="application/atom+xml"/>
   <id>urn:rtg:feed:${lang}</id>
-  <updated>${digests[0]?.date ?? new Date().toISOString().split('T')[0]}T00:00:00Z</updated>
+  <updated>${latestDate}T00:00:00Z</updated>
   <author><name>rtg.center</name></author>
   <rights>Government documents are public domain under Thai law</rights>
   ${items}
@@ -63,4 +64,9 @@ function escapeXml(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+/** Strip HTML tags for plain-text excerpts */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }

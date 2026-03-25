@@ -252,3 +252,304 @@ main { flex: 1; }
   color: var(--color-text-muted);
   font-size: 1.125rem;
 }
+
+/* ── Issue cards ── */
+.issue-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.issue-card {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  transition: border-color .15s;
+}
+.issue-card:hover { border-color: var(--color-primary); }
+
+.issue-card-link {
+  display: block;
+  padding: 1rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+}
+.issue-card-link:hover { text-decoration: none; color: inherit; }
+
+.issue-card-header {
+  display: flex; align-items: center; gap: .5rem;
+  margin-bottom: .5rem;
+  font-size: .8125rem;
+  color: var(--color-text-muted);
+}
+
+.issue-card-body {
+  display: flex; align-items: baseline; gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.issue-card-title {
+  font-size: 1.125rem; font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.issue-card-count {
+  font-size: .8125rem;
+  color: var(--color-text-muted);
+}
+
+.issue-card-action {
+  display: block;
+  margin-top: .5rem;
+  font-size: .8125rem;
+  color: var(--color-link);
+}
+
+.home-nav {
+  padding: 1.5rem 0;
+  font-size: .9375rem;
+}
+
+/* ── Breadcrumb ── */
+.breadcrumb {
+  font-size: .875rem;
+  padding: .75rem 0;
+  color: var(--color-text-muted);
+}
+.breadcrumb a { color: var(--color-text-muted); }
+.breadcrumb a:hover { color: var(--color-text); }
+
+/* ── Issue header ── */
+.issue-header { margin-bottom: 1rem; }
+
+.issue-documents {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+/* ── Document view ── */
+.document-view {
+  padding: 1.5rem 0;
+}
+.issue-documents .document-view {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 2.5rem;
+}
+.issue-documents .document-view:last-child {
+  border-bottom: none;
+}
+
+.document-title {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: .25rem;
+}
+
+.document-title-th {
+  font-size: .9375rem;
+  line-height: 1.8;
+  color: var(--color-text-muted);
+  margin-bottom: .75rem;
+}
+
+/* Metadata definition list */
+.document-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem .75rem;
+  margin: .75rem 0;
+  font-size: .875rem;
+}
+.document-meta-item {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+}
+.document-meta dt {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+.document-meta dd { margin: 0; }
+
+.document-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1.25rem 0;
+}
+
+/* ── Document content (rendered markdown) ── */
+.document-content {
+  font-size: 1rem;
+  line-height: 1.75;
+  overflow-wrap: break-word;
+}
+.document-content:lang(th) {
+  line-height: 1.85;
+}
+
+.document-content h1,
+.document-content h2,
+.document-content h3,
+.document-content h4 {
+  margin: 1.5em 0 .5em;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.document-content h1 { font-size: 1.375rem; }
+.document-content h2 { font-size: 1.25rem; }
+.document-content h3 { font-size: 1.125rem; }
+.document-content h4 { font-size: 1rem; }
+
+.document-content p {
+  margin: .75em 0;
+}
+
+.document-content ul,
+.document-content ol {
+  margin: .75em 0;
+  padding-left: 1.5em;
+}
+.document-content li {
+  margin: .375em 0;
+}
+.document-content li::marker {
+  color: var(--color-text-muted);
+}
+
+/* Indented articles/clauses — paragraphs that start with "Article" or numbers */
+.document-content blockquote {
+  margin: .75em 0;
+  padding: .5em .75em .5em 1em;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+  border-radius: 0 4px 4px 0;
+}
+.document-content blockquote p {
+  margin: .375em 0;
+}
+
+.document-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: .9375rem;
+}
+.document-content th,
+.document-content td {
+  border: 1px solid var(--color-border);
+  padding: .5em .75em;
+  text-align: left;
+}
+.document-content th {
+  background: var(--color-bg-subtle);
+  font-weight: 600;
+}
+
+.document-content strong { font-weight: 600; }
+.document-content em { font-style: italic; }
+
+.document-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1.5em 0;
+}
+
+.document-no-content {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Relevance section ── */
+.document-relevance {
+  margin: .75rem 0;
+}
+.document-relevance-heading {
+  font-size: .875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--color-text-muted);
+  margin-bottom: .5rem;
+}
+.document-relevance-meta {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .5rem;
+}
+.document-relevance-summary {
+  font-size: .9375rem;
+  line-height: 1.6;
+  padding: .5rem .75rem;
+  background: var(--color-bg-subtle);
+  border-radius: 4px;
+}
+
+/* ── Key terms ── */
+.document-terms {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  font-size: .875rem;
+  margin: .75rem 0;
+}
+
+/* ── Document footer ── */
+.document-footer {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  font-size: .8125rem;
+  color: var(--color-text-muted);
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ── Archive grouped ── */
+.archive-grouped { margin: 1rem 0; }
+
+.archive-date-group {
+  margin-bottom: 2rem;
+}
+.archive-date-heading {
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding-bottom: .5rem;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: .75rem;
+}
+
+/* ── Screen reader only ── */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Print styles ── */
+@media print {
+  .site-header, .site-footer, .breadcrumb, .lang-switch,
+  .issue-card-action, .home-nav { display: none; }
+
+  body { font-size: 11pt; line-height: 1.5; color: #000; background: #fff; }
+
+  .document-content { font-size: 11pt; line-height: 1.6; }
+  .document-content:lang(th) { line-height: 1.7; }
+
+  .document-view { page-break-inside: avoid; }
+  .document-title { font-size: 14pt; }
+
+  a { color: #000; text-decoration: none; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #666; }
+}

@@ -80,3 +80,70 @@ export interface DigestEntry {
   record: RawRecord;
   translations: Record<Lang, Translation | null>;
 }
+
+// V2: Full-text gazette types
+
+export type IssueStatus = 'pending' | 'processing' | 'complete' | 'error';
+export type DocumentType = 'law' | 'decree' | 'regulation' | 'announcement' | 'order';
+
+export interface GazetteIssue {
+  id: string;
+  published_date: string;
+  volume: number;
+  section: string;
+  series: Series;
+  document_count: number;
+  status: IssueStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GazetteDocument {
+  id: string;
+  issue_id: string;
+  page: number | null;
+  pdf_url: string | null;
+  r2_key: string | null;
+
+  title_th: string;
+  content_th: string | null;
+
+  title_en: string | null;
+  content_en: string | null;
+
+  title_ru: string | null;
+  content_ru: string | null;
+
+  document_type: DocumentType | null;
+  issuing_authority: string | null;
+  effective_date: string | null;
+  key_terms: string | null; // JSON array string
+
+  relevance_score: number | null;
+  relevance_tags: string | null; // JSON array string
+  summary_en: string | null;
+  summary_ru: string | null;
+
+  processed: ProcessedStatus;
+  tokens_used: number | null;
+  source: string;
+  fetched_at: string;
+}
+
+// Gemini multimodal response for full document extraction
+export interface GeminiDocumentResponse {
+  title_th: string;
+  title_en: string;
+  title_ru: string;
+  content_th: string;
+  content_en: string;
+  content_ru: string;
+  document_type: DocumentType;
+  issuing_authority: string;
+  effective_date: string | null;
+  key_terms: string[];
+  relevance_score: number;
+  relevance_tags: string[];
+  summary_en: string | null;
+  summary_ru: string | null;
+}

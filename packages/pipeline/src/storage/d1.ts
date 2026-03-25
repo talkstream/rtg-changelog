@@ -1,4 +1,4 @@
-import type { SourceRecord, GeminiTranslation, Series } from '@rtg/shared';
+import type { SourceRecord, GeminiTranslation, GeminiDocumentResponse, Series } from '@rtg/shared';
 
 // Use Web Crypto API available in Workers
 async function hashRecord(record: SourceRecord): Promise<string> {
@@ -9,6 +9,29 @@ async function hashRecord(record: SourceRecord): Promise<string> {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+
+/**
+ * Generate a deterministic ID from document coordinates
+ */
+function documentId(volume: number, section: string, series: string, page: number): string {
+  const raw = `${volume}:${section}:${series}:${page}`;
+  // Simple hash: use first 16 hex chars of a sync-friendly hash
+  let h = 0;
+  for (let i = 0; i < raw.length; i++) {
+    h = ((h << 5) - h + raw.charCodeAt(i)) | 0;
+  }
+  // Combine with raw string for uniqueness
+  return `doc_${Math.abs(h).toString(16).padStart(8, '0')}_${volume}_${series}_${page}`;
+}
+
+/**
+ * Generate an issue ID from volume + section + series
+ */
+function issueId(volume: number, section: string, series: string): string {
+  return `${volume}_${section}_${series}`;
+}
+
+// ===================== V1 Operations (kept for backward compatibility) =====================
 
 /**
  * Insert new raw records, skipping duplicates. Returns IDs of newly inserted records.
@@ -189,5 +212,175 @@ export async function logPipelineRun(
       data.errors,
       data.status,
     )
+    .run();
+}
+
+// ===================== V2 Operations (gazette_issues + gazette_documents) =====================
+
+/**
+ * Upsert a gazette issue from source record metadata.
+ * Returns the issue ID.
+ */
+export async function upsertGazetteIssue(
+  db: D1Database,
+  record: SourceRecord,
+): Promise<string> {
+  const id = issueId(record.volume, record.section, record.type);
+
+  await db
+    .prepare(
+      `INSERT INTO gazette_issues (id, published_date, volume, section, series, document_count, status)
+       VALUES (?, ?, ?, ?, ?, 0, 'pending')
+       ON CONFLICT(id) DO UPDATE SET
+         updated_at = datetime('now')`,
+    )
+    .bind(id, record.date, record.volume, record.section, record.type as Series)
+    .run();
+
+  return id;
+}
+
+/**
+ * Insert a gazette document stub from source metadata.
+ * Returns the document ID and R2 key, or null if duplicate.
+ */
+export async function insertGazetteDocument(
+  db: D1Database,
+  record: SourceRecord,
+  gazetteIssueId: string,
+): Promise<{ docId: string; r2Key: string } | null> {
+  const docId = documentId(record.volume, record.section, record.type, record.page);
+  const r2Key = `${record.volume}/${record.section}/${record.type}/${record.page}.pdf`;
+
+  try {
+    await db
+      .prepare(
+        `INSERT INTO gazette_documents (id, issue_id, page, pdf_url, r2_key, title_th, source)
+         VALUES (?, ?, ?, ?, ?, ?, 'gdcatalog')`,
+      )
+      .bind(
+        docId,
+        gazetteIssueId,
+        record.page || null,
+        record.url || null,
+        r2Key,
+        record.title,
+      )
+      .run();
+
+    return { docId, r2Key };
+  } catch (e: unknown) {
+    // UNIQUE constraint violation = already exists
+    if (e instanceof Error && e.message.includes('UNIQUE')) return null;
+    throw e;
+  }
+}
+
+/**
+ * Get unprocessed gazette documents that have an R2 key assigned.
+ * Returns one document at a time to stay within CPU limits.
+ */
+export async function getNextUnprocessedDocument(
+  db: D1Database,
+): Promise<{ id: string; r2_key: string; title_th: string; issue_id: string } | null> {
+  const result = await db
+    .prepare(
+      `SELECT id, r2_key, title_th, issue_id
+       FROM gazette_documents
+       WHERE processed = 0 AND r2_key IS NOT NULL
+       ORDER BY fetched_at ASC
+       LIMIT 1`,
+    )
+    .first<{ id: string; r2_key: string; title_th: string; issue_id: string }>();
+
+  return result ?? null;
+}
+
+/**
+ * Store full Gemini extraction result into a gazette document.
+ */
+export async function updateDocumentWithTranslation(
+  db: D1Database,
+  docId: string,
+  geminiResult: GeminiDocumentResponse,
+  tokensUsed: number,
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE gazette_documents SET
+         title_th = ?,
+         title_en = ?,
+         title_ru = ?,
+         content_th = ?,
+         content_en = ?,
+         content_ru = ?,
+         document_type = ?,
+         issuing_authority = ?,
+         effective_date = ?,
+         key_terms = ?,
+         relevance_score = ?,
+         relevance_tags = ?,
+         summary_en = ?,
+         summary_ru = ?,
+         processed = 1,
+         tokens_used = ?
+       WHERE id = ?`,
+    )
+    .bind(
+      geminiResult.title_th,
+      geminiResult.title_en,
+      geminiResult.title_ru,
+      geminiResult.content_th,
+      geminiResult.content_en,
+      geminiResult.content_ru,
+      geminiResult.document_type,
+      geminiResult.issuing_authority,
+      geminiResult.effective_date,
+      JSON.stringify(geminiResult.key_terms),
+      geminiResult.relevance_score,
+      JSON.stringify(geminiResult.relevance_tags),
+      geminiResult.summary_en,
+      geminiResult.summary_ru,
+      tokensUsed,
+      docId,
+    )
+    .run();
+}
+
+/**
+ * Mark a gazette document as failed (processed = 2)
+ */
+export async function markDocumentError(
+  db: D1Database,
+  docId: string,
+): Promise<void> {
+  await db
+    .prepare('UPDATE gazette_documents SET processed = 2 WHERE id = ?')
+    .bind(docId)
+    .run();
+}
+
+/**
+ * Update gazette_issues document_count and status after processing
+ */
+export async function updateIssueStatus(
+  db: D1Database,
+  gazetteIssueId: string,
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE gazette_issues SET
+         document_count = (
+           SELECT COUNT(*) FROM gazette_documents WHERE issue_id = ? AND processed = 1
+         ),
+         status = CASE
+           WHEN (SELECT COUNT(*) FROM gazette_documents WHERE issue_id = ? AND processed = 0) = 0
+             THEN 'complete'
+           ELSE 'processing'
+         END,
+         updated_at = datetime('now')
+       WHERE id = ?`,
+    )
+    .bind(gazetteIssueId, gazetteIssueId, gazetteIssueId)
     .run();
 }

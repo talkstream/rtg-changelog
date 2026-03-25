@@ -1,12 +1,12 @@
 import type { APIContext } from 'astro';
-import { getAllDigestDates } from '../lib/d1.ts';
+import { getAllPublishedIds } from '../lib/d1.ts';
 import { SUPPORTED_LANGS } from '@rtg/shared';
 import { env } from 'cloudflare:workers';
 
 export async function GET(_context: APIContext): Promise<Response> {
   const db = env.DB;
 
-  const digests = await getAllDigestDates(db);
+  const { issueIds, documentIds } = await getAllPublishedIds(db);
 
   let urls = '';
 
@@ -17,10 +17,17 @@ export async function GET(_context: APIContext): Promise<Response> {
     urls += url(`https://rtg.center/${lang}/about`, 'monthly', '0.3');
   }
 
-  // Digest date pages
-  for (const d of digests) {
+  // Issue pages
+  for (const id of issueIds) {
     for (const lang of SUPPORTED_LANGS) {
-      urls += url(`https://rtg.center/${lang}/${d.date}`, 'weekly', '0.8');
+      urls += url(`https://rtg.center/${lang}/issue/${id}`, 'weekly', '0.8');
+    }
+  }
+
+  // Document pages
+  for (const id of documentIds) {
+    for (const lang of SUPPORTED_LANGS) {
+      urls += url(`https://rtg.center/${lang}/doc/${id}`, 'weekly', '0.7');
     }
   }
 

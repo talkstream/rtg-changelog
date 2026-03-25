@@ -1,34 +1,35 @@
 ---
 import Base from '../../layouts/Base.astro';
-import DateSection from '../../components/DateSection.astro';
-import { t, getLangFromUrl } from '../../i18n/index.ts';
-import { getLatestDigests, getDigestEntries } from '../../lib/d1.ts';
+import IssueCard from '../../components/IssueCard.astro';
+import { t, getLangFromUrl, localePath } from '../../i18n/index.ts';
+import { getLatestIssues } from '../../lib/d1.ts';
 import type { Lang } from '@rtg/shared';
-import type { DigestEntryView } from '../../lib/d1.ts';
 import { env } from 'cloudflare:workers';
 
 const lang = getLangFromUrl(Astro.url) as Lang;
 const db = env.DB;
 
-const digests = await getLatestDigests(db, 3);
-
-const digestsWithEntries: Array<{ date: string; entries: DigestEntryView[] }> = [];
-for (const d of digests) {
-  const entries = await getDigestEntries(db, d.date, lang);
-  digestsWithEntries.push({ date: d.date, entries });
-}
+const issues = await getLatestIssues(db, 10);
 ---
 <Base>
   <h1 class="page-title">{t(lang, 'site.subtitle')}</h1>
   <p class="page-subtitle">{t(lang, 'site.description')}</p>
 
-  {digestsWithEntries.length === 0 ? (
+  {issues.length === 0 ? (
     <div class="no-content">
       <p>{t(lang, 'digest.noEntries')}</p>
     </div>
   ) : (
-    digestsWithEntries.map(({ date, entries }) => (
-      <DateSection date={date} entries={entries} lang={lang} />
-    ))
+    <div class="issue-grid">
+      {issues.map((issue) => (
+        <IssueCard issue={issue} lang={lang} />
+      ))}
+    </div>
+  )}
+
+  {issues.length > 0 && (
+    <nav class="home-nav">
+      <a href={localePath(lang, '/archive')}>{t(lang, 'nav.archive')} &rarr;</a>
+    </nav>
   )}
 </Base>

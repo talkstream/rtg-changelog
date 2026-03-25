@@ -1,7 +1,9 @@
-import { geminiResponseSchema } from '@rtg/shared';
-import type { GeminiTranslation, SourceRecord } from '@rtg/shared';
+import { geminiResponseSchema, geminiDocumentResponseSchema } from '@rtg/shared';
+import type { GeminiTranslation, GeminiDocumentResponse } from '@rtg/shared';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+// V1 prompts (title-only translation, kept for backward compatibility)
 
 const SYSTEM_PROMPT = `You are a legal translation specialist for the Royal Thai Gazette (ราชกิจจานุเบกษา). Your audience is adult expats and business foreigners living in Thailand. Produce precise, formal but accessible translations.
 
@@ -31,6 +33,40 @@ RECORDS_PLACEHOLDER
 Respond ONLY with a JSON array, no markdown fences:
 [{"id":"...","title_en":"...","title_ru":"...","relevance_score":N,"relevance_tags":["..."],"summary_en":"..." or null,"summary_ru":"..." or null}]`;
 
+// V2 prompts (full-text PDF extraction and translation)
+
+const DOCUMENT_SYSTEM_PROMPT = `You are translating official Thai government gazette documents.
+Your translations must be:
+- Complete: every sentence, every clause, every fact preserved
+- Accurate: legal terminology precise, no paraphrasing of substance
+- Readable: natural English/Russian, not word-for-word machine translation
+- Structured: preserve document structure (sections, articles, clauses)`;
+
+const DOCUMENT_USER_PROMPT = `This is a document from the Royal Thai Gazette (ราชกิจจานุเบกษา).
+
+1. Extract the COMPLETE Thai text, preserving all structure (sections, articles, clauses, numbered lists)
+2. Translate to English — accurate, complete, no omissions
+3. Translate to Russian — accurate, complete, no omissions
+4. Provide metadata
+
+Respond as JSON:
+{
+  "title_th": "...",
+  "title_en": "...",
+  "title_ru": "...",
+  "content_th": "full Thai text with markdown structure",
+  "content_en": "full English translation with markdown structure",
+  "content_ru": "full Russian translation with markdown structure",
+  "document_type": "law|decree|regulation|announcement|order",
+  "issuing_authority": "...",
+  "effective_date": "YYYY-MM-DD or null",
+  "key_terms": ["...", "..."],
+  "relevance_score": 1-5,
+  "relevance_tags": ["visa","immigration","tax","business",...],
+  "summary_en": "1-2 sentence summary for expats or null if score<=2",
+  "summary_ru": "same in Russian or null if score<=2"
+}`;
+
 interface GeminiApiResponse {
   candidates?: Array<{
     content?: {
@@ -45,7 +81,7 @@ interface GeminiApiResponse {
 }
 
 /**
- * Call Gemini API to translate and categorize a batch of records
+ * V1: Call Gemini API to translate and categorize a batch of records (title-only)
  */
 export async function translateBatch(
   records: Array<{ id: string; title_th: string; series: string; published_date: string }>,
@@ -90,9 +126,59 @@ export async function translateBatch(
 
   const tokensUsed = data.usageMetadata?.totalTokenCount ?? 0;
 
-  // Parse and validate response
   const parsed = JSON.parse(text);
   const validated = geminiResponseSchema.parse(parsed);
 
   return { translations: validated, tokensUsed };
+}
+
+/**
+ * V2: Extract full text from PDF and translate using Gemini multimodal API
+ */
+export async function extractAndTranslatePdf(
+  pdfBase64: string,
+  apiKey: string,
+  model: string,
+): Promise<{ document: GeminiDocumentResponse; tokensUsed: number }> {
+  const res = await fetch(
+    `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: DOCUMENT_SYSTEM_PROMPT }] },
+        contents: [{
+          parts: [
+            {
+              inlineData: {
+                mimeType: 'application/pdf',
+                data: pdfBase64,
+              },
+            },
+            { text: DOCUMENT_USER_PROMPT },
+          ],
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+        },
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini API error ${res.status}: ${errText}`);
+  }
+
+  const data = await res.json() as GeminiApiResponse;
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Empty Gemini response for PDF extraction');
+
+  const tokensUsed = data.usageMetadata?.totalTokenCount ?? 0;
+
+  const parsed = JSON.parse(text);
+  const validated = geminiDocumentResponseSchema.parse(parsed);
+
+  return { document: validated, tokensUsed };
 }

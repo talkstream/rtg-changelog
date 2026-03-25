@@ -1,0 +1,38 @@
+---
+import Base from '../../../layouts/Base.astro';
+import DocumentView from '../../../components/DocumentView.astro';
+import { t, getLangFromUrl, localePath } from '../../../i18n/index.ts';
+import { getDocumentById } from '../../../lib/d1.ts';
+import type { Lang } from '@rtg/shared';
+import { env } from 'cloudflare:workers';
+
+const lang = getLangFromUrl(Astro.url) as Lang;
+const rawId = Astro.params.id;
+const id = Number(rawId);
+
+if (!rawId || Number.isNaN(id)) {
+  return Astro.redirect(`/${lang}/`, 302);
+}
+
+const db = env.DB;
+
+const doc = await getDocumentById(db, id, lang);
+if (!doc) {
+  return new Response(null, { status: 404 });
+}
+
+const pageTitle = doc.title;
+const pageDesc = doc.summary || doc.title;
+---
+<Base title={pageTitle} description={pageDesc}>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href={localePath(lang, `/issue/${doc.issueId}`)}>
+      &larr; {t(lang, 'issue.backToIssue')}
+      {doc.volume != null && doc.section && (
+        <> &middot; {t(lang, 'issue.vol')} {doc.volume} {t(lang, 'issue.sec')} {doc.section}</>
+      )}
+    </a>
+  </nav>
+
+  <DocumentView doc={doc} lang={lang} standalone={true} />
+</Base>
