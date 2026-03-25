@@ -1,0 +1,14 @@
+---
+import { t } from '../i18n/index.ts';
+import type { Lang } from '@rtg/shared';
+
+interface Props {
+  series: string;
+  lang: Lang;
+}
+
+const { series, lang } = Astro.props;
+const label = t(lang, `series.${series}`);
+const badgeClass = `badge badge-${series.toLowerCase()}`;
+---
+<span class={badgeClass}>{label}</span>

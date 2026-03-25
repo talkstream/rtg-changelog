@@ -1,0 +1,25 @@
+---
+import DigestEntry from './DigestEntry.astro';
+import { t, formatDate } from '../i18n/index.ts';
+import type { Lang } from '@rtg/shared';
+import type { DigestEntryView } from '../lib/d1.ts';
+
+interface Props {
+  date: string;
+  entries: DigestEntryView[];
+  lang: Lang;
+}
+
+const { date, entries, lang } = Astro.props;
+const formattedDate = formatDate(date, lang);
+---
+<section class="date-section" aria-labelledby={`date-${date}`}>
+  <h2 class="date-heading" id={`date-${date}`}>
+    <time datetime={date}>{formattedDate}</time>
+    <span class="entry-count">{entries.length} {t(lang, 'digest.entries')}</span>
+  </h2>
+  <hr class="date-divider">
+  {entries.map((entry) => (
+    <DigestEntry entry={entry} lang={lang} />
+  ))}
+</section>

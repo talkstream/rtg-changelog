@@ -1,0 +1,26 @@
+---
+import { SUPPORTED_LANGS } from '@rtg/shared';
+import type { Lang } from '@rtg/shared';
+
+interface Props {
+  lang: Lang;
+  currentPath: string;
+}
+
+const { lang, currentPath } = Astro.props;
+
+function switchLangPath(targetLang: Lang): string {
+  return currentPath.replace(/^\/(en|th|ru)/, `/${targetLang}`);
+}
+---
+<nav class="lang-switch" aria-label="Language selection">
+  {SUPPORTED_LANGS.map((l) => (
+    <a
+      href={switchLangPath(l)}
+      hreflang={l}
+      aria-current={l === lang ? 'page' : undefined}
+    >
+      {l.toUpperCase()}
+    </a>
+  ))}
+</nav>

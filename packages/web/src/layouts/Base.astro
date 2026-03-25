@@ -1,0 +1,62 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { t, getLangFromUrl } from '../i18n/index.ts';
+import type { Lang } from '@rtg/shared';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const lang = getLangFromUrl(Astro.url) as Lang;
+const { title, description } = Astro.props;
+const pageTitle = title ? `${title} | ${t(lang, 'site.title')}` : `${t(lang, 'site.title')} — ${t(lang, 'site.subtitle')}`;
+const pageDesc = description || t(lang, 'site.description');
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+---
+<!DOCTYPE html>
+<html lang={lang} dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDesc}>
+
+  <link rel="canonical" href={canonicalUrl.href}>
+  <link rel="alternate" hreflang="en" href={new URL(`/en${Astro.url.pathname.replace(/^\/(en|th|ru)/, '')}`, Astro.site).href}>
+  <link rel="alternate" hreflang="th" href={new URL(`/th${Astro.url.pathname.replace(/^\/(en|th|ru)/, '')}`, Astro.site).href}>
+  <link rel="alternate" hreflang="ru" href={new URL(`/ru${Astro.url.pathname.replace(/^\/(en|th|ru)/, '')}`, Astro.site).href}>
+  <link rel="alternate" hreflang="x-default" href={new URL(`/en${Astro.url.pathname.replace(/^\/(en|th|ru)/, '')}`, Astro.site).href}>
+
+  <link rel="alternate" type="application/atom+xml" title={`RTG Digest (${lang.toUpperCase()})`} href={`/api/feed/${lang}.xml`}>
+
+  <meta property="og:title" content={pageTitle}>
+  <meta property="og:description" content={pageDesc}>
+  <meta property="og:type" content="website">
+  <meta property="og:url" content={canonicalUrl.href}>
+  <meta property="og:site_name" content="RTG Digest">
+  <meta property="og:locale" content={lang === 'th' ? 'th_TH' : lang === 'ru' ? 'ru_RU' : 'en_US'}>
+
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "RTG Digest",
+    "url": "https://rtg.center",
+    "description": "Multilingual Royal Thai Gazette digest for expats in Thailand",
+    "inLanguage": ["en", "th", "ru"],
+    "publisher": { "@type": "Organization", "name": "rtg.center" }
+  })} />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <Header lang={lang} currentPath={Astro.url.pathname} />
+  <main id="main" class="container">
+    <slot />
+  </main>
+  <Footer lang={lang} />
+</body>
+</html>

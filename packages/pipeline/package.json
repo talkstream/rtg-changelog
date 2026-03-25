@@ -1,0 +1,20 @@
+{
+  "name": "@rtg/pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "migrate": "wrangler d1 execute rtg-digest --remote --file=schema/001-initial.sql && wrangler d1 execute rtg-digest --remote --file=schema/002-fts.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260317.1",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.76.0"
+  },
+  "dependencies": {
+    "@rtg/shared": "*"
+  }
+}

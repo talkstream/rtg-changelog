@@ -1,0 +1,23 @@
+---
+import { t } from '../i18n/index.ts';
+import type { Lang } from '@rtg/shared';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+<footer class="site-footer" role="contentinfo">
+  <div class="container">
+    <p>
+      {t(lang, 'footer.source')}:
+      <a href="https://ratchakitcha.soc.go.th" rel="noopener external" target="_blank">ราชกิจจานุเบกษา</a>
+    </p>
+    <p>{t(lang, 'footer.disclaimer')}</p>
+    <p>{t(lang, 'footer.publicDomain')}</p>
+    <nav aria-label="Feed links" style="margin-top:.5rem">
+      <a href={`/api/feed/${lang}.xml`}>RSS</a>
+    </nav>
+  </div>
+</footer>

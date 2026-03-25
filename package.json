@@ -1,0 +1,22 @@
+{
+  "name": "rtg-changelog",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Royal Thai Gazette multilingual digest — rtg.center",
+  "workspaces": [
+    "packages/shared",
+    "packages/pipeline",
+    "packages/web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=packages/web",
+    "dev": "npm run dev --workspace=packages/web",
+    "deploy:web": "npm run deploy --workspace=packages/web",
+    "deploy:pipeline": "npm run deploy --workspace=packages/pipeline",
+    "deploy": "npm run deploy:pipeline && npm run deploy:web",
+    "typecheck": "tsc --noEmit --project packages/shared/tsconfig.json"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

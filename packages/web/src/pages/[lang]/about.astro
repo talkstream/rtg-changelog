@@ -1,0 +1,70 @@
+---
+import Base from '../../layouts/Base.astro';
+import { t, getLangFromUrl } from '../../i18n/index.ts';
+import { SUPPORTED_LANGS } from '@rtg/shared';
+import type { Lang } from '@rtg/shared';
+
+export const prerender = true;
+
+export function getStaticPaths() {
+  return SUPPORTED_LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const lang = getLangFromUrl(Astro.url) as Lang;
+
+const content: Record<Lang, { title: string; body: string }> = {
+  en: {
+    title: 'About RTG Digest',
+    body: `<p>RTG Digest is a free, multilingual digest of the <strong>Royal Thai Gazette</strong> (ราชกิจจานุเบกษา) — Thailand's official government journal where all laws, regulations, and official announcements are published.</p>
+
+<h2>Why this exists</h2>
+<p>Millions of foreign residents, business owners, and workers in Thailand are directly affected by laws and regulations published in the Royal Thai Gazette. However, the content is published exclusively in Thai, making it inaccessible to the majority of the international community.</p>
+
+<h2>How it works</h2>
+<p>We automatically monitor the Royal Thai Gazette for new publications. When new content appears, it is translated using AI (Google Gemini), categorized by relevance to foreign residents, and published here within minutes.</p>
+
+<h2>Important disclaimer</h2>
+<p>This is an <strong>unofficial</strong> digest. Translations are produced by AI and may contain inaccuracies. Always verify important legal matters with the <a href="https://ratchakitcha.soc.go.th" rel="noopener" target="_blank">official Royal Thai Gazette</a> and consult qualified legal counsel before making decisions based on this content.</p>
+
+<h2>Data source</h2>
+<p>All content originates from the Royal Thai Gazette, published by the Secretariat of the Cabinet of Thailand. Government documents published in the Royal Thai Gazette are public domain under Thai copyright law (Copyright Act B.E. 2537).</p>`,
+  },
+  th: {
+    title: 'เกี่ยวกับ RTG Digest',
+    body: `<p>RTG Digest เป็นบริการสรุปราชกิจจานุเบกษาหลายภาษาแบบฟรี ราชกิจจานุเบกษาเป็นหนังสือราชการของประเทศไทยที่เผยแพร่กฎหมาย ระเบียบ และประกาศทางการทั้งหมด</p>
+
+<h2>ทำไมถึงมีบริการนี้</h2>
+<p>ชาวต่างชาติหลายล้านคนในประเทศไทย ทั้งผู้พำนักอาศัย นักธุรกิจ และแรงงาน ได้รับผลกระทบโดยตรงจากกฎหมายและระเบียบที่ประกาศในราชกิจจานุเบกษา แต่เนื้อหาเผยแพร่เป็นภาษาไทยเท่านั้น</p>
+
+<h2>วิธีการทำงาน</h2>
+<p>ระบบตรวจสอบราชกิจจานุเบกษาโดยอัตโนมัติ เมื่อมีเนื้อหาใหม่ จะถูกแปลโดย AI (Google Gemini) จัดหมวดหมู่ตามความเกี่ยวข้องกับชาวต่างชาติ และเผยแพร่ที่นี่ภายในไม่กี่นาที</p>
+
+<h2>ข้อความสำคัญ</h2>
+<p>นี่เป็นสรุป<strong>อย่างไม่เป็นทางการ</strong> การแปลทำโดย AI และอาจมีข้อผิดพลาด กรุณาตรวจสอบเรื่องกฎหมายสำคัญกับ<a href="https://ratchakitcha.soc.go.th" rel="noopener" target="_blank">ราชกิจจานุเบกษาอย่างเป็นทางการ</a>และปรึกษาที่ปรึกษากฎหมาย</p>`,
+  },
+  ru: {
+    title: 'О проекте RTG Digest',
+    body: `<p>RTG Digest — бесплатный многоязычный дайджест <strong>Королевской газеты Таиланда</strong> (ราชกิจจานุเบกษา) — официального правительственного журнала, в котором публикуются все законы, постановления и официальные объявления.</p>
+
+<h2>Зачем это нужно</h2>
+<p>Миллионы иностранных резидентов, владельцев бизнеса и работников в Таиланде напрямую затронуты законами и постановлениями, публикуемыми в Королевской газете. Однако контент публикуется исключительно на тайском языке.</p>
+
+<h2>Как это работает</h2>
+<p>Мы автоматически отслеживаем новые публикации Королевской газеты. Когда появляется новый контент, он переводится с помощью AI (Google Gemini), категоризируется по релевантности для иностранных резидентов и публикуется здесь в течение нескольких минут.</p>
+
+<h2>Важный дисклеймер</h2>
+<p>Это <strong>неофициальный</strong> дайджест. Переводы выполнены AI и могут содержать неточности. Всегда сверяйте важные юридические вопросы с <a href="https://ratchakitcha.soc.go.th" rel="noopener" target="_blank">официальной Королевской газетой</a> и консультируйтесь с квалифицированным юристом.</p>
+
+<h2>Источник данных</h2>
+<p>Весь контент происходит из Королевской газеты Таиланда, издаваемой Секретариатом Кабинета министров. Государственные документы являются общественным достоянием по тайскому закону об авторском праве (Copyright Act B.E. 2537).</p>`,
+  },
+};
+
+const page = content[lang];
+---
+<Base title={page.title}>
+  <article style="max-width:var(--max-w);line-height:1.75">
+    <h1 class="page-title">{page.title}</h1>
+    <Fragment set:html={page.body} />
+  </article>
+</Base>

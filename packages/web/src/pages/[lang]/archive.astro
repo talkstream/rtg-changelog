@@ -1,0 +1,36 @@
+---
+import Base from '../../layouts/Base.astro';
+import { t, getLangFromUrl, localePath, formatDate } from '../../i18n/index.ts';
+import { getAllDigestDates } from '../../lib/d1.ts';
+import type { Lang } from '@rtg/shared';
+import { env } from 'cloudflare:workers';
+
+const lang = getLangFromUrl(Astro.url) as Lang;
+const db = env.DB;
+
+const digests = await getAllDigestDates(db);
+---
+<Base title={t(lang, 'archive.title')}>
+  <h1 class="page-title">{t(lang, 'archive.title')}</h1>
+  <p class="page-subtitle">{t(lang, 'archive.allDates')}</p>
+
+  {digests.length === 0 ? (
+    <div class="no-content">
+      <p>{t(lang, 'digest.noEntries')}</p>
+    </div>
+  ) : (
+    <ul class="archive-list">
+      {digests.map((d) => (
+        <li class="archive-item">
+          <a href={localePath(lang, `/${d.date}`)}>
+            <time datetime={d.date}>{formatDate(d.date, lang)}</time>
+          </a>
+          <span class="archive-count">
+            {d.recordCount} {t(lang, 'digest.entries')}
+            {d.highRelevanceCount > 0 && ` · ${d.highRelevanceCount} important`}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )}
+</Base>

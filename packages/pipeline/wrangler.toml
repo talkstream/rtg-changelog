@@ -1,0 +1,23 @@
+name = "rtg-pipeline"
+main = "src/index.ts"
+compatibility_date = "2026-03-17"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rtg-digest"
+database_id = "ee055099-632f-418a-a234-436e67af936b"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "96ca4301dd2e4170b193d2875abac959"
+
+[vars]
+GEMINI_MODEL = "gemini-3.1-pro"
+BATCH_SIZE = "15"
+
+[observability]
+enabled = true
