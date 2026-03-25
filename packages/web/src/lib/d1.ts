@@ -3,7 +3,7 @@ import type { Lang } from '@rtg/shared';
 // -- Row types returned from D1 --
 
 interface IssueRow {
-  id: number;
+  id: string;
   published_date: string;
   volume: number;
   section: string;
@@ -13,8 +13,8 @@ interface IssueRow {
 }
 
 interface DocumentRow {
-  id: number;
-  issue_id: number;
+  id: string;
+  issue_id: string;
   page: number | null;
   pdf_url: string | null;
   r2_key: string | null;
@@ -48,7 +48,7 @@ interface DocumentWithIssueRow extends DocumentRow {
 // -- View types for components --
 
 export interface IssueView {
-  id: number;
+  id: string;
   publishedDate: string;
   volume: number;
   section: string;
@@ -57,8 +57,8 @@ export interface IssueView {
 }
 
 export interface DocumentView {
-  id: number;
-  issueId: number;
+  id: string;
+  issueId: string;
   page: number | null;
   pdfUrl: string | null;
   titleTh: string;
@@ -187,7 +187,7 @@ export async function getAllIssues(db: D1Database): Promise<IssueView[]> {
  */
 export async function getIssueById(
   db: D1Database,
-  id: number,
+  id: string,
 ): Promise<IssueView | null> {
   const row = await db
     .prepare(
@@ -228,7 +228,7 @@ export async function getDocumentsByIssue(
  */
 export async function getDocumentById(
   db: D1Database,
-  id: number,
+  id: string,
   lang: Lang,
 ): Promise<DocumentView | null> {
   const row = await db
@@ -312,20 +312,20 @@ export async function getLatestDocuments(
  */
 export async function getAllPublishedIds(
   db: D1Database,
-): Promise<{ issueIds: number[]; documentIds: number[] }> {
+): Promise<{ issueIds: string[]; documentIds: string[] }> {
   const [issues, docs] = await Promise.all([
     db
       .prepare(
         `SELECT id FROM gazette_issues WHERE status = 'published' ORDER BY published_date DESC`,
       )
-      .all<{ id: number }>(),
+      .all<{ id: string }>(),
     db
       .prepare(
         `SELECT d.id FROM gazette_documents d
          JOIN gazette_issues i ON i.id = d.issue_id
          WHERE d.processed = 1 AND i.status = 'published'`,
       )
-      .all<{ id: number }>(),
+      .all<{ id: string }>(),
   ]);
 
   return {

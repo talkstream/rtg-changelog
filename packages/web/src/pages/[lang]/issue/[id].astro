@@ -7,10 +7,9 @@ import type { Lang } from '@rtg/shared';
 import { env } from 'cloudflare:workers';
 
 const lang = getLangFromUrl(Astro.url) as Lang;
-const rawId = Astro.params.id;
-const id = Number(rawId);
+const id = decodeURIComponent(Astro.params.id || '');
 
-if (!rawId || Number.isNaN(id)) {
+if (!id) {
   return Astro.redirect(`/${lang}/`, 302);
 }
 
