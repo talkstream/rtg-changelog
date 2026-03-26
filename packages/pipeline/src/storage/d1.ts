@@ -375,7 +375,7 @@ export async function updateIssueStatus(
          ),
          status = CASE
            WHEN (SELECT COUNT(*) FROM gazette_documents WHERE issue_id = ? AND processed = 0) = 0
-             THEN 'complete'
+             THEN 'published'
            ELSE 'processing'
          END,
          updated_at = datetime('now')

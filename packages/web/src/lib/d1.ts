@@ -156,7 +156,7 @@ export async function getLatestIssues(
     .prepare(
       `SELECT id, published_date, volume, section, series, document_count, status
        FROM gazette_issues
-       WHERE status = 'published'
+       WHERE status IN ('published', 'complete', 'processing')
        ORDER BY published_date DESC, volume DESC, section
        LIMIT ?`,
     )
@@ -174,7 +174,7 @@ export async function getAllIssues(db: D1Database): Promise<IssueView[]> {
     .prepare(
       `SELECT id, published_date, volume, section, series, document_count, status
        FROM gazette_issues
-       WHERE status = 'published'
+       WHERE status IN ('published', 'complete', 'processing')
        ORDER BY published_date DESC, volume DESC, section`,
     )
     .all<IssueRow>();
@@ -316,7 +316,7 @@ export async function getAllPublishedIds(
   const [issues, docs] = await Promise.all([
     db
       .prepare(
-        `SELECT id FROM gazette_issues WHERE status = 'published' ORDER BY published_date DESC`,
+        `SELECT id FROM gazette_issues WHERE status IN ('published', 'complete', 'processing') ORDER BY published_date DESC`,
       )
       .all<{ id: string }>(),
     db
