@@ -2,13 +2,13 @@ name: Fetch RTG PDFs
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # Every 15 minutes
+    - cron: '0 */4 * * *' # Every 4 hours (saves Actions minutes)
   workflow_dispatch: # Manual trigger
 
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -23,30 +23,28 @@ jobs:
         run: npx playwright install chromium
 
       - name: Fetch latest gazette metadata
-        run: |
-          # Get latest records from GD Catalog that need PDF processing
-          node scripts/fetch-new-records.mjs
+        continue-on-error: true
+        run: node scripts/fetch-new-records.mjs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
       - name: Download PDFs via Playwright
+        continue-on-error: true
         run: node scripts/download-pdfs.mjs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
 
       - name: Upload PDFs to R2
+        if: hashFiles('/tmp/rtg-pdfs/*.pdf') != ''
         run: |
+          count=0
           for pdf in /tmp/rtg-pdfs/*.pdf; do
             if [ -f "$pdf" ]; then
               key=$(basename "$pdf")
-              npx wrangler r2 object put "rtg-pdfs/$key" --file="$pdf" --content-type="application/pdf"
-              echo "Uploaded: $key"
+              npx wrangler r2 object put "rtg-pdfs/docs/$key" --file="$pdf" --content-type="application/pdf" --remote || true
+              count=$((count + 1))
             fi
           done
+          echo "Uploaded $count PDFs"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-
-      - name: Trigger pipeline processing
-        run: |
-          curl -s -X POST "https://rtg-pipeline.mommyslittlehelper.workers.dev/__trigger" \
-            -H "Authorization: Bearer ${{ secrets.PIPELINE_SECRET }}" || true

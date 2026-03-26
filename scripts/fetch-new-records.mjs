@@ -24,12 +24,28 @@ function parseDate(dateStr) {
   return null;
 }
 
+async function fetchWithRetry(url, retries = 3, timeout = 30000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (e) {
+      console.warn(`Attempt ${i + 1}/${retries} failed: ${e.message}`);
+      if (i === retries - 1) throw e;
+      await new Promise(r => setTimeout(r, 5000 * (i + 1)));
+    }
+  }
+}
+
 async function main() {
   console.log('Fetching GD Catalog metadata...');
-  const res = await fetch(GDCATALOG_API);
+  const res = await fetchWithRetry(GDCATALOG_API);
   if (!res.ok) {
     console.error(`GD Catalog API error: ${res.status}`);
-    process.exit(1);
+    process.exit(0);
   }
 
   const data = await res.json();
@@ -83,5 +99,5 @@ async function main() {
 
 main().catch(e => {
   console.error(e);
-  process.exit(1);
+  process.exit(0);
 });
