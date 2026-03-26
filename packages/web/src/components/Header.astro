@@ -14,6 +14,7 @@ const { lang, currentPath } = Astro.props;
   <div class="container">
     <a href={localePath(lang, '/')} class="site-logo">rtg.center</a>
     <nav class="site-nav" aria-label="Main navigation">
+      <a href={localePath(lang, '/search')}>{t(lang, 'nav.search')}</a>
       <a href={localePath(lang, '/archive')}>{t(lang, 'nav.archive')}</a>
       <a href={localePath(lang, '/about')}>{t(lang, 'nav.about')}</a>
       <LanguageSwitcher lang={lang} currentPath={currentPath} />

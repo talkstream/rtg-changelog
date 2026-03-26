@@ -1,49 +1,58 @@
 ---
 import Base from '../../layouts/Base.astro';
-import IssueCard from '../../components/IssueCard.astro';
-import { t, getLangFromUrl } from '../../i18n/index.ts';
-import { getAllIssues } from '../../lib/d1.ts';
+import { t, getLangFromUrl, localePath, formatDate } from '../../i18n/index.ts';
+import { getAllDigestDates } from '../../lib/d1.ts';
 import type { Lang } from '@rtg/shared';
 import { env } from 'cloudflare:workers';
 
 const lang = getLangFromUrl(Astro.url) as Lang;
 const db = env.DB;
 
-const issues = await getAllIssues(db);
+const allDates = await getAllDigestDates(db);
 
-// Group issues by date for display
-const grouped = new Map<string, typeof issues>();
-for (const issue of issues) {
-  const existing = grouped.get(issue.publishedDate) ?? [];
-  existing.push(issue);
-  grouped.set(issue.publishedDate, existing);
+// Group dates by year-month for calendar view
+const grouped = new Map<string, typeof allDates>();
+for (const d of allDates) {
+  // Extract YYYY-MM from date string
+  const yearMonth = d.date.slice(0, 7);
+  const existing = grouped.get(yearMonth) ?? [];
+  existing.push(d);
+  grouped.set(yearMonth, existing);
+}
+
+// Format month heading (e.g. "March 2026")
+function formatMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-');
+  const date = new Date(Number(year), Number(month) - 1, 1);
+  const locale = lang === 'th' ? 'th-TH' : lang === 'ru' ? 'ru-RU' : 'en-US';
+  return date.toLocaleDateString(locale, { year: 'numeric', month: 'long' });
 }
 ---
 <Base title={t(lang, 'archive.title')}>
   <h1 class="page-title">{t(lang, 'archive.title')}</h1>
   <p class="page-subtitle">{t(lang, 'archive.allDates')}</p>
 
-  {issues.length === 0 ? (
+  {allDates.length === 0 ? (
     <div class="no-content">
       <p>{t(lang, 'digest.noEntries')}</p>
     </div>
   ) : (
     <div class="archive-grouped">
-      {[...grouped.entries()].map(([date, dateIssues]) => (
+      {[...grouped.entries()].map(([yearMonth, dates]) => (
         <section class="archive-date-group">
-          <h2 class="archive-date-heading">
-            <time datetime={date}>
-              {new Date(date + 'T00:00:00').toLocaleDateString(
-                lang === 'th' ? 'th-TH' : lang === 'ru' ? 'ru-RU' : 'en-US',
-                { year: 'numeric', month: 'long', day: 'numeric' }
-              )}
-            </time>
-          </h2>
-          <div class="issue-grid">
-            {dateIssues.map((issue) => (
-              <IssueCard issue={issue} lang={lang} />
+          <h2 class="archive-date-heading">{formatMonth(yearMonth)}</h2>
+          <ul class="archive-list">
+            {dates.map((d) => (
+              <li class="archive-item">
+                <a href={localePath(lang, `/${d.date}`)}>
+                  <time datetime={d.date}>{formatDate(d.date, lang)}</time>
+                </a>
+                <span class="archive-count">
+                  {d.totalDocs} {t(lang, 'digest.documents')}
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ))}
     </div>

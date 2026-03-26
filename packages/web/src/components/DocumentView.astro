@@ -63,6 +63,13 @@ const HeadingTag = standalone ? 'h1' : 'h2';
   {/* Document content separator */}
   <hr class="document-divider">
 
+  {/* AI translation disclaimer */}
+  {lang !== 'th' && (
+    <div class="ai-disclaimer">
+      {t(lang, 'doc.aiTranslation')}
+    </div>
+  )}
+
   {/* Full text */}
   {doc.content ? (
     <div class="document-content" lang={lang === 'th' ? 'th' : lang} set:html={doc.content} />

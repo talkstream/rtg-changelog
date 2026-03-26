@@ -1,0 +1,73 @@
+---
+import Base from '../../layouts/Base.astro';
+import SeriesBadge from '../../components/SeriesBadge.astro';
+import { t, getLangFromUrl, localePath, formatDate } from '../../i18n/index.ts';
+import { searchDocuments } from '../../lib/d1.ts';
+import type { Lang } from '@rtg/shared';
+import type { DocumentView } from '../../lib/d1.ts';
+import { env } from 'cloudflare:workers';
+
+const lang = getLangFromUrl(Astro.url) as Lang;
+const db = env.DB;
+
+const query = Astro.url.searchParams.get('q')?.trim() ?? '';
+let results: DocumentView[] = [];
+let searched = false;
+
+if (query.length >= 2) {
+  searched = true;
+  results = await searchDocuments(db, query, lang);
+}
+---
+<Base title={t(lang, 'search.title')}>
+  <h1 class="page-title">{t(lang, 'search.title')}</h1>
+
+  <form action={localePath(lang, '/search')} method="GET" class="search-form">
+    <input
+      type="text"
+      name="q"
+      class="search-input"
+      placeholder={t(lang, 'search.placeholder')}
+      value={query}
+      autofocus
+    />
+    <button type="submit" class="search-btn">{t(lang, 'search.submit')}</button>
+  </form>
+
+  {searched && results.length === 0 && (
+    <div class="no-content">
+      <p>{t(lang, 'search.noResults')}</p>
+    </div>
+  )}
+
+  {results.length > 0 && (
+    <div class="search-results">
+      <p class="search-results-count">{results.length} {t(lang, 'digest.documents')}</p>
+      <div class="digest-dates">
+        {results.map((doc) => (
+          <article class="highlight-card" data-series={doc.series}>
+            <div class="highlight-meta">
+              {doc.series && <SeriesBadge series={doc.series} lang={lang} />}
+              {doc.publishedDate && (
+                <time datetime={doc.publishedDate} class="highlight-date">
+                  {formatDate(doc.publishedDate, lang)}
+                </time>
+              )}
+              {doc.relevanceScore && doc.relevanceScore >= 3 && (
+                <span class={`relevance relevance-${doc.relevanceScore}`}>
+                  {t(lang, `relevance.${doc.relevanceScore}`)}
+                </span>
+              )}
+            </div>
+            <h3 class="highlight-title">
+              <a href={localePath(lang, `/doc/${doc.id}`)}>{doc.title}</a>
+            </h3>
+            {doc.summary && (
+              <p class="highlight-summary">{doc.summary}</p>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  )}
+</Base>

@@ -1,0 +1,25 @@
+---
+import SeriesBadge from './SeriesBadge.astro';
+import { t, localePath } from '../i18n/index.ts';
+import type { Lang } from '@rtg/shared';
+import type { DocumentView } from '../lib/d1.ts';
+
+interface Props {
+  doc: DocumentView;
+  lang: Lang;
+}
+
+const { doc, lang } = Astro.props;
+---
+<article class="doc-card" data-series={doc.series ?? undefined}>
+  <div class="doc-card-meta">
+    {doc.series && <SeriesBadge series={doc.series} lang={lang} />}
+    {doc.relevanceScore != null && doc.relevanceScore >= 4 && (
+      <span class={`relevance relevance-${doc.relevanceScore}`}>
+        {t(lang, `relevance.${doc.relevanceScore}`)}
+      </span>
+    )}
+    {doc.documentType && <span class="doc-card-type">{doc.documentType}</span>}
+  </div>
+  <a href={localePath(lang, `/doc/${doc.id}`)} class="doc-card-title">{doc.title}</a>
+</article>

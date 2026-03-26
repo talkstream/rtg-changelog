@@ -1,7 +1,7 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import DocumentView from '../../../components/DocumentView.astro';
-import { t, getLangFromUrl, localePath } from '../../../i18n/index.ts';
+import { t, getLangFromUrl, localePath, formatDate } from '../../../i18n/index.ts';
 import { getDocumentById } from '../../../lib/d1.ts';
 import type { Lang } from '@rtg/shared';
 import { env } from 'cloudflare:workers';
@@ -25,12 +25,15 @@ const pageDesc = doc.summary || doc.title;
 ---
 <Base title={pageTitle} description={pageDesc}>
   <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href={localePath(lang, `/issue/${doc.issueId}`)}>
-      &larr; {t(lang, 'issue.backToIssue')}
-      {doc.volume != null && doc.section && (
-        <> &middot; {t(lang, 'issue.vol')} {doc.volume} {t(lang, 'issue.sec')} {doc.section}</>
-      )}
-    </a>
+    {doc.publishedDate ? (
+      <a href={localePath(lang, `/${doc.publishedDate}`)}>
+        &larr; {t(lang, 'issue.backToIssue')} &middot; {formatDate(doc.publishedDate, lang)}
+      </a>
+    ) : (
+      <a href={localePath(lang, '/')}>
+        &larr; {t(lang, 'digest.backToHome')}
+      </a>
+    )}
   </nav>
 
   <DocumentView doc={doc} lang={lang} standalone={true} />

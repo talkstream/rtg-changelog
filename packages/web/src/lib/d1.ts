@@ -145,68 +145,77 @@ function mapIssue(row: IssueRow): IssueView {
 
 // -- Query functions --
 
+// -- Date-based digest queries --
+
+export interface DigestDate {
+  date: string; // YYYY-MM-DD
+  totalDocs: number;
+  issueCount: number;
+}
+
+interface DigestDateRow {
+  published_date: string;
+  total_docs: number;
+  issue_count: number;
+}
+
 /**
- * Get the latest gazette issues
+ * Get distinct dates with document counts (for homepage + archive)
  */
-export async function getLatestIssues(
+export async function getLatestDigestDates(
   db: D1Database,
   limit = 10,
-): Promise<IssueView[]> {
+): Promise<DigestDate[]> {
   const { results } = await db
     .prepare(
-      `SELECT id, published_date, volume, section, series, document_count, status
+      `SELECT published_date, SUM(document_count) as total_docs,
+         COUNT(*) as issue_count
        FROM gazette_issues
        WHERE status IN ('published', 'complete', 'processing')
-       ORDER BY published_date DESC, volume DESC, section
+       GROUP BY published_date
+       ORDER BY published_date DESC
        LIMIT ?`,
     )
     .bind(limit)
-    .all<IssueRow>();
+    .all<DigestDateRow>();
 
-  return (results ?? []).map(mapIssue);
+  return (results ?? []).map((r) => ({
+    date: r.published_date,
+    totalDocs: r.total_docs,
+    issueCount: r.issue_count,
+  }));
 }
 
 /**
- * Get all published gazette issues (for archive)
+ * Get all distinct dates for archive (no limit)
  */
-export async function getAllIssues(db: D1Database): Promise<IssueView[]> {
+export async function getAllDigestDates(
+  db: D1Database,
+): Promise<DigestDate[]> {
   const { results } = await db
     .prepare(
-      `SELECT id, published_date, volume, section, series, document_count, status
+      `SELECT published_date, SUM(document_count) as total_docs,
+         COUNT(*) as issue_count
        FROM gazette_issues
        WHERE status IN ('published', 'complete', 'processing')
-       ORDER BY published_date DESC, volume DESC, section`,
+       GROUP BY published_date
+       ORDER BY published_date DESC`,
     )
-    .all<IssueRow>();
+    .all<DigestDateRow>();
 
-  return (results ?? []).map(mapIssue);
+  return (results ?? []).map((r) => ({
+    date: r.published_date,
+    totalDocs: r.total_docs,
+    issueCount: r.issue_count,
+  }));
 }
 
 /**
- * Get a single issue by ID
+ * Get ALL documents for a specific date (for daily digest page)
  */
-export async function getIssueById(
+export async function getDocumentsByDate(
   db: D1Database,
-  id: string,
-): Promise<IssueView | null> {
-  const row = await db
-    .prepare(
-      `SELECT id, published_date, volume, section, series, document_count, status
-       FROM gazette_issues
-       WHERE id = ? AND status = 'published'`,
-    )
-    .bind(id)
-    .first<IssueRow>();
-
-  return row ? mapIssue(row) : null;
-}
-
-/**
- * Get all documents for a given issue
- */
-export async function getDocumentsByIssue(
-  db: D1Database,
-  issueId: number,
+  date: string,
   lang: Lang,
 ): Promise<DocumentView[]> {
   const { results } = await db
@@ -214,10 +223,33 @@ export async function getDocumentsByIssue(
       `SELECT d.*, i.published_date, i.volume, i.section, i.series
        FROM gazette_documents d
        JOIN gazette_issues i ON i.id = d.issue_id
-       WHERE d.issue_id = ? AND d.processed = 1
-       ORDER BY d.page ASC NULLS LAST`,
+       WHERE i.published_date = ? AND d.processed = 1
+       ORDER BY i.series ASC, d.page ASC NULLS LAST`,
     )
-    .bind(issueId)
+    .bind(date)
+    .all<DocumentWithIssueRow>();
+
+  return (results ?? []).map((r) => mapDocumentWithIssue(r, lang));
+}
+
+/**
+ * Get high-relevance documents (relevance_score >= 4) for highlights
+ */
+export async function getHighlights(
+  db: D1Database,
+  lang: Lang,
+  limit = 10,
+): Promise<DocumentView[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT d.*, i.published_date, i.volume, i.section, i.series
+       FROM gazette_documents d
+       JOIN gazette_issues i ON i.id = d.issue_id
+       WHERE d.processed = 1 AND d.relevance_score >= 4
+       ORDER BY i.published_date DESC, d.relevance_score DESC
+       LIMIT ?`,
+    )
+    .bind(limit)
     .all<DocumentWithIssueRow>();
 
   return (results ?? []).map((r) => mapDocumentWithIssue(r, lang));
@@ -308,28 +340,20 @@ export async function getLatestDocuments(
 }
 
 /**
- * Get all published issue IDs and document IDs (for sitemap)
+ * Get all published document IDs (for sitemap)
  */
 export async function getAllPublishedIds(
   db: D1Database,
-): Promise<{ issueIds: string[]; documentIds: string[] }> {
-  const [issues, docs] = await Promise.all([
-    db
-      .prepare(
-        `SELECT id FROM gazette_issues WHERE status IN ('published', 'complete', 'processing') ORDER BY published_date DESC`,
-      )
-      .all<{ id: string }>(),
-    db
-      .prepare(
-        `SELECT d.id FROM gazette_documents d
-         JOIN gazette_issues i ON i.id = d.issue_id
-         WHERE d.processed = 1 AND i.status = 'published'`,
-      )
-      .all<{ id: string }>(),
-  ]);
+): Promise<{ documentIds: string[] }> {
+  const docs = await db
+    .prepare(
+      `SELECT d.id FROM gazette_documents d
+       JOIN gazette_issues i ON i.id = d.issue_id
+       WHERE d.processed = 1 AND i.status = 'published'`,
+    )
+    .all<{ id: string }>();
 
   return {
-    issueIds: (issues.results ?? []).map((r) => r.id),
     documentIds: (docs.results ?? []).map((r) => r.id),
   };
 }

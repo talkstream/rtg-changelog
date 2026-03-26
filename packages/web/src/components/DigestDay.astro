@@ -1,0 +1,31 @@
+---
+import DocumentCard from './DocumentCard.astro';
+import { t, localePath, formatDate } from '../i18n/index.ts';
+import type { Lang } from '@rtg/shared';
+import type { DocumentView } from '../lib/d1.ts';
+
+interface Props {
+  date: string;
+  docs: DocumentView[];
+  lang: Lang;
+  totalCount: number;
+}
+
+const { date, docs, lang, totalCount } = Astro.props;
+const preview = docs.slice(0, 5);
+const dateFormatted = formatDate(date, lang);
+---
+<section class="digest-day">
+  <div class="digest-day-heading">
+    <time class="digest-day-date" datetime={date}>{dateFormatted}</time>
+    <span class="digest-day-count">{totalCount} {t(lang, 'digest.seriesCount')}</span>
+  </div>
+  {preview.map((doc) => (
+    <DocumentCard doc={doc} lang={lang} />
+  ))}
+  {totalCount > 5 && (
+    <a class="digest-day-more" href={localePath(lang, `/digest/${date}`)}>
+      → {t(lang, 'home.viewDigest')} {dateFormatted}
+    </a>
+  )}
+</section>

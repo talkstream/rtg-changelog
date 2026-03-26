@@ -1,0 +1,23 @@
+---
+import DocumentCard from './DocumentCard.astro';
+import { t } from '../i18n/index.ts';
+import type { Lang } from '@rtg/shared';
+import type { DocumentView } from '../lib/d1.ts';
+
+interface Props {
+  docs: DocumentView[];
+  lang: Lang;
+}
+
+const { docs, lang } = Astro.props;
+const highlighted = docs.filter((d) => d.relevanceScore != null && d.relevanceScore >= 4);
+---
+{highlighted.length > 0 && (
+  <section class="highlights">
+    <h2 class="highlights-heading">{t(lang, 'home.highlights')}</h2>
+    <p class="highlights-sub">{t(lang, 'home.highlightsSub')}</p>
+    {highlighted.map((doc) => (
+      <DocumentCard doc={doc} lang={lang} />
+    ))}
+  </section>
+)}

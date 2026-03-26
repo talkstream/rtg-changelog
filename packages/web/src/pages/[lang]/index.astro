@@ -1,35 +1,111 @@
 ---
 import Base from '../../layouts/Base.astro';
-import IssueCard from '../../components/IssueCard.astro';
-import { t, getLangFromUrl, localePath } from '../../i18n/index.ts';
-import { getLatestIssues } from '../../lib/d1.ts';
+import SeriesBadge from '../../components/SeriesBadge.astro';
+import { t, getLangFromUrl, localePath, formatDate } from '../../i18n/index.ts';
+import { getLatestDigestDates, getHighlights, getDocumentsByDate } from '../../lib/d1.ts';
 import type { Lang } from '@rtg/shared';
+import type { DocumentView } from '../../lib/d1.ts';
 import { env } from 'cloudflare:workers';
 
 const lang = getLangFromUrl(Astro.url) as Lang;
 const db = env.DB;
 
-const issues = await getLatestIssues(db, 10);
+const [dates, highlights] = await Promise.all([
+  getLatestDigestDates(db, 5),
+  getHighlights(db, lang, 5),
+]);
+
+// Fetch up to 5 document titles per date for preview
+const datePreviews = new Map<string, DocumentView[]>();
+for (const d of dates) {
+  const docs = await getDocumentsByDate(db, d.date, lang);
+  datePreviews.set(d.date, docs.slice(0, 5));
+}
 ---
 <Base>
   <h1 class="page-title">{t(lang, 'site.subtitle')}</h1>
-  <p class="page-subtitle">{t(lang, 'site.description')}</p>
+  <p class="page-subtitle">{t(lang, 'home.onboarding')}</p>
 
-  {issues.length === 0 ? (
-    <div class="no-content">
-      <p>{t(lang, 'digest.noEntries')}</p>
-    </div>
-  ) : (
-    <div class="issue-grid">
-      {issues.map((issue) => (
-        <IssueCard issue={issue} lang={lang} />
-      ))}
-    </div>
+  {/* Highlights section */}
+  {highlights.length > 0 && (
+    <section class="highlights-section">
+      <h2 class="section-heading">{t(lang, 'home.highlights')}</h2>
+      <p class="section-subheading">{t(lang, 'home.highlightsSub')}</p>
+      <div class="highlights-list">
+        {highlights.map((doc) => (
+          <article class="highlight-card" data-series={doc.series}>
+            <div class="highlight-meta">
+              {doc.series && <SeriesBadge series={doc.series} lang={lang} />}
+              {doc.relevanceScore && (
+                <span class={`relevance relevance-${doc.relevanceScore}`}>
+                  {t(lang, `relevance.${doc.relevanceScore}`)}
+                </span>
+              )}
+              {doc.publishedDate && (
+                <time datetime={doc.publishedDate} class="highlight-date">
+                  {formatDate(doc.publishedDate, lang)}
+                </time>
+              )}
+            </div>
+            <h3 class="highlight-title">
+              <a href={localePath(lang, `/doc/${doc.id}`)}>{doc.title}</a>
+            </h3>
+            {doc.summary && (
+              <p class="highlight-summary">{doc.summary}</p>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
   )}
 
-  {issues.length > 0 && (
+  {/* Latest digests */}
+  <section class="latest-section">
+    <h2 class="section-heading">{t(lang, 'digest.latest')}</h2>
+
+    {dates.length === 0 ? (
+      <div class="no-content">
+        <p>{t(lang, 'digest.noEntries')}</p>
+      </div>
+    ) : (
+      <div class="digest-dates">
+        {dates.map((d) => {
+          const preview = datePreviews.get(d.date) ?? [];
+          const formattedDate = formatDate(d.date, lang);
+          return (
+            <section class="digest-day">
+              <h3 class="date-heading">
+                <a href={localePath(lang, `/${d.date}`)}>
+                  <time datetime={d.date}>{formattedDate}</time>
+                </a>
+                <span class="entry-count">
+                  {d.totalDocs} {t(lang, 'digest.documents')}
+                </span>
+              </h3>
+              <hr class="date-divider" />
+              {preview.length > 0 && (
+                <ul class="digest-preview">
+                  {preview.map((doc) => (
+                    <li class="digest-preview-item">
+                      {doc.series && <SeriesBadge series={doc.series} lang={lang} />}
+                      <a href={localePath(lang, `/doc/${doc.id}`)}>{doc.title}</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <a href={localePath(lang, `/${d.date}`)} class="digest-view-link">
+                {t(lang, 'home.viewDigest')} &rarr;
+              </a>
+            </section>
+          );
+        })}
+      </div>
+    )}
+  </section>
+
+  {dates.length > 0 && (
     <nav class="home-nav">
-      <a href={localePath(lang, '/archive')}>{t(lang, 'nav.archive')} &rarr;</a>
+      <a href={localePath(lang, '/archive')}>{t(lang, 'home.olderDates')} &rarr;</a>
     </nav>
   )}
 </Base>

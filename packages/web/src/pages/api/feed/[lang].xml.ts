@@ -16,7 +16,7 @@ export async function GET(context: APIContext): Promise<Response> {
 
   let items = '';
   for (const doc of documents) {
-    const docUrl = `https://rtg.center/${lang}/doc/${doc.id}`;
+    const docUrl = `https://rtg.center/${lang}/doc/${encodeURIComponent(doc.id)}`;
     // Build summary: first 500 chars of content, or summary, or title
     const excerpt = doc.content
       ? escapeXml(stripHtml(doc.content).slice(0, 500))
