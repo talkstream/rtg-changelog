@@ -120,7 +120,7 @@ const HeadingTag = standalone ? 'h1' : 'h2';
   {/* Footer: PDF + page */}
   <footer class="document-footer">
     {doc.pdfUrl && (
-      <a href={doc.pdfUrl} rel="noopener" target="_blank" hreflang="th">
+      <a href={doc.pdfUrl} rel="noopener noreferrer" target="_blank" hreflang="th">
         {t(lang, 'digest.viewPdf')} &#8599;
         <span class="sr-only"> (opens in new tab, Thai)</span>
       </a>

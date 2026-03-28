@@ -2,6 +2,7 @@ import en from './en.json';
 import th from './th.json';
 import ru from './ru.json';
 import type { Lang } from '@rtg/shared';
+import { SUPPORTED_LANGS, DEFAULT_LANG } from '@rtg/shared';
 
 const translations: Record<Lang, Record<string, string>> = { en, th, ru };
 
@@ -11,8 +12,8 @@ export function t(locale: Lang, key: string): string {
 
 export function getLangFromUrl(url: URL): Lang {
   const seg = url.pathname.split('/')[1];
-  if (seg === 'th' || seg === 'ru' || seg === 'en') return seg;
-  return 'en';
+  if (SUPPORTED_LANGS.includes(seg as Lang)) return seg as Lang;
+  return DEFAULT_LANG;
 }
 
 export function localePath(lang: Lang, path: string): string {

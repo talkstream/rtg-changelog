@@ -9,12 +9,6 @@
       "database_id": "ee055099-632f-418a-a234-436e67af936b"
     }
   ],
-  "kv_namespaces": [
-    {
-      "binding": "KV",
-      "id": "96ca4301dd2e4170b193d2875abac959"
-    }
-  ],
   // Custom domain rtg.center — configure via Cloudflare dashboard:
   // Workers & Pages → rtg-web → Settings → Domains & Routes → Add → Custom Domain → rtg.center
   "observability": {

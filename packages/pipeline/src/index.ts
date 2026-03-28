@@ -42,6 +42,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     const batchSize = parseInt(env.BATCH_SIZE) || 15;
+    const startedAt = new Date().toISOString();
     let totalFetched = 0;
     let totalNew = 0;
     let totalProcessed = 0;
@@ -186,6 +187,7 @@ export default {
         const now = Date.now();
         if (!lastLog || now - parseInt(lastLog) > 600_000) {
           await logPipelineRun(env.DB, {
+            started_at: startedAt,
             records_fetched: 0,
             records_new: 0,
             records_processed: 0,
@@ -198,13 +200,15 @@ export default {
         return;
       }
 
+      const pipelineStatus = errors.length > 0 && totalProcessed > 0 ? 'partial' : errors.length > 0 ? 'error' : 'success';
       await logPipelineRun(env.DB, {
+        started_at: startedAt,
         records_fetched: totalFetched,
         records_new: totalNew,
         records_processed: totalProcessed,
         tokens_used: totalTokens,
         errors: errors.length > 0 ? JSON.stringify(errors) : null,
-        status: errors.length > 0 ? 'error' : 'success',
+        status: pipelineStatus,
       });
 
       console.log(
@@ -214,6 +218,7 @@ export default {
       const msg = e instanceof Error ? e.message : String(e);
       console.error(`Pipeline fatal error: ${msg}`);
       await logPipelineRun(env.DB, {
+        started_at: startedAt,
         records_fetched: totalFetched,
         records_new: totalNew,
         records_processed: totalProcessed,

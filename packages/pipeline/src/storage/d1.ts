@@ -184,20 +184,22 @@ export async function upsertDigests(db: D1Database, dates: string[]): Promise<vo
 export async function logPipelineRun(
   db: D1Database,
   data: {
+    started_at: string;
     records_fetched: number;
     records_new: number;
     records_processed: number;
     tokens_used: number;
     errors: string | null;
-    status: 'success' | 'error';
+    status: 'success' | 'error' | 'partial';
   },
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO pipeline_runs (completed_at, records_fetched, records_new, records_processed, tokens_used, errors, status)
-       VALUES (datetime('now'), ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO pipeline_runs (started_at, completed_at, records_fetched, records_new, records_processed, tokens_used, errors, status)
+       VALUES (?, datetime('now'), ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
+      data.started_at,
       data.records_fetched,
       data.records_new,
       data.records_processed,
