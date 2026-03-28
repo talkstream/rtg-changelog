@@ -1,6 +1,7 @@
 ---
 import SeriesBadge from './SeriesBadge.astro';
 import { t, formatDate } from '../i18n/index.ts';
+import { sanitizeContent } from '../lib/sanitize.ts';
 import type { Lang } from '@rtg/shared';
 import type { DocumentView } from '../lib/d1.ts';
 
@@ -72,7 +73,7 @@ const HeadingTag = standalone ? 'h1' : 'h2';
 
   {/* Full text */}
   {doc.content ? (
-    <div class="document-content" lang={lang === 'th' ? 'th' : lang} set:html={doc.content} />
+    <div class="document-content" lang={lang === 'th' ? 'th' : lang} set:html={sanitizeContent(doc.content)} />
   ) : (
     <p class="document-no-content">{t(lang, 'doc.noContent')}</p>
   )}

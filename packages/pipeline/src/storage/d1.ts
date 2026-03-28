@@ -14,14 +14,7 @@ async function hashRecord(record: SourceRecord): Promise<string> {
  * Generate a deterministic ID from document coordinates
  */
 function documentId(volume: number, section: string, series: string, page: number): string {
-  const raw = `${volume}:${section}:${series}:${page}`;
-  // Simple hash: use first 16 hex chars of a sync-friendly hash
-  let h = 0;
-  for (let i = 0; i < raw.length; i++) {
-    h = ((h << 5) - h + raw.charCodeAt(i)) | 0;
-  }
-  // Combine with raw string for uniqueness
-  return `doc_${Math.abs(h).toString(16).padStart(8, '0')}_${volume}_${series}_${page}`;
+  return `doc_${volume}_${section.replace(/\s+/g, '-')}_${series}_${page}`;
 }
 
 /**
@@ -375,12 +368,16 @@ export async function updateIssueStatus(
          ),
          status = CASE
            WHEN (SELECT COUNT(*) FROM gazette_documents WHERE issue_id = ? AND processed = 0) = 0
+             AND (SELECT COUNT(*) FROM gazette_documents WHERE issue_id = ? AND processed = 1) > 0
              THEN 'published'
+           WHEN (SELECT COUNT(*) FROM gazette_documents WHERE issue_id = ? AND processed = 0) = 0
+             AND (SELECT COUNT(*) FROM gazette_documents WHERE issue_id = ? AND processed = 1) = 0
+             THEN 'error'
            ELSE 'processing'
          END,
          updated_at = datetime('now')
        WHERE id = ?`,
     )
-    .bind(gazetteIssueId, gazetteIssueId, gazetteIssueId)
+    .bind(gazetteIssueId, gazetteIssueId, gazetteIssueId, gazetteIssueId, gazetteIssueId, gazetteIssueId)
     .run();
 }

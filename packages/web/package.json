@@ -13,7 +13,8 @@
   "dependencies": {
     "@astrojs/cloudflare": "^13.0.0",
     "astro": "^6.0.0",
-    "@rtg/shared": "*"
+    "@rtg/shared": "*",
+    "sanitize-html": "^2.14.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260317.1",

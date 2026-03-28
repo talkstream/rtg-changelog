@@ -24,7 +24,7 @@ const dateFormatted = formatDate(date, lang);
     <DocumentCard doc={doc} lang={lang} />
   ))}
   {totalCount > 5 && (
-    <a class="digest-day-more" href={localePath(lang, `/digest/${date}`)}>
+    <a class="digest-day-more" href={localePath(lang, `/${date}`)}>
       → {t(lang, 'home.viewDigest')} {dateFormatted}
     </a>
   )}

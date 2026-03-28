@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import DocumentView from '../../components/DocumentView.astro';
 import { t, getLangFromUrl, localePath, formatDate } from '../../i18n/index.ts';
-import { getDocumentsByDate, getLatestDigestDates } from '../../lib/d1.ts';
+import { getDocumentsByDate, getAdjacentDates } from '../../lib/d1.ts';
 import type { Lang } from '@rtg/shared';
 import { env } from 'cloudflare:workers';
 
@@ -14,9 +14,18 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
   return new Response(null, { status: 404 });
 }
 
+// Validate that the date is a real calendar date
+const dateObj = new Date(date + 'T00:00:00Z');
+if (isNaN(dateObj.getTime())) {
+  return new Response(null, { status: 404 });
+}
+
 const db = env.DB;
 
-const documents = await getDocumentsByDate(db, date, lang);
+const [documents, adjacent] = await Promise.all([
+  getDocumentsByDate(db, date, lang),
+  getAdjacentDates(db, date),
+]);
 if (documents.length === 0) {
   return new Response(null, { status: 404 });
 }
@@ -31,16 +40,8 @@ for (const doc of documents) {
   grouped.set(series, existing);
 }
 
-// Determine prev/next dates for navigation
-const allDates = await getLatestDigestDates(db, 1000);
-const dateStrings = allDates.map((d) => d.date);
-const currentIndex = dateStrings.indexOf(date);
-const prevDate = currentIndex >= 0 && currentIndex < dateStrings.length - 1
-  ? dateStrings[currentIndex + 1]
-  : null;
-const nextDate = currentIndex > 0
-  ? dateStrings[currentIndex - 1]
-  : null;
+const prevDate = adjacent.prev;
+const nextDate = adjacent.next;
 
 const formattedDate = formatDate(date, lang);
 const pageTitle = `${t(lang, 'digest.title')} — ${formattedDate}`;

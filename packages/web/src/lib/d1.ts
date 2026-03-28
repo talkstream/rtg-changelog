@@ -113,9 +113,9 @@ function mapDocument(row: DocumentRow, lang: Lang): DocumentView {
     documentType: row.document_type,
     issuingAuthority: row.issuing_authority,
     effectiveDate: row.effective_date,
-    keyTerms: row.key_terms ? JSON.parse(row.key_terms) : [],
+    keyTerms: (() => { try { return row.key_terms ? JSON.parse(row.key_terms) : []; } catch { return []; } })(),
     relevanceScore: row.relevance_score,
-    relevanceTags: row.relevance_tags ? JSON.parse(row.relevance_tags) : [],
+    relevanceTags: (() => { try { return row.relevance_tags ? JSON.parse(row.relevance_tags) : []; } catch { return []; } })(),
     summary: pickSummary(row, lang),
   };
 }
@@ -171,7 +171,7 @@ export async function getLatestDigestDates(
       `SELECT published_date, SUM(document_count) as total_docs,
          COUNT(*) as issue_count
        FROM gazette_issues
-       WHERE status IN ('published', 'complete', 'processing')
+       WHERE status IN ('published')
        GROUP BY published_date
        ORDER BY published_date DESC
        LIMIT ?`,
@@ -197,7 +197,7 @@ export async function getAllDigestDates(
       `SELECT published_date, SUM(document_count) as total_docs,
          COUNT(*) as issue_count
        FROM gazette_issues
-       WHERE status IN ('published', 'complete', 'processing')
+       WHERE status IN ('published')
        GROUP BY published_date
        ORDER BY published_date DESC`,
     )
@@ -208,6 +208,20 @@ export async function getAllDigestDates(
     totalDocs: r.total_docs,
     issueCount: r.issue_count,
   }));
+}
+
+/**
+ * Get adjacent (prev/next) dates for navigation on daily digest pages
+ */
+export async function getAdjacentDates(db: D1Database, date: string): Promise<{ prev: string | null; next: string | null }> {
+  const [prevResult, nextResult] = await Promise.all([
+    db.prepare(`SELECT DISTINCT published_date FROM gazette_issues WHERE published_date < ? AND status IN ('published') ORDER BY published_date DESC LIMIT 1`).bind(date).first<{ published_date: string }>(),
+    db.prepare(`SELECT DISTINCT published_date FROM gazette_issues WHERE published_date > ? AND status IN ('published') ORDER BY published_date ASC LIMIT 1`).bind(date).first<{ published_date: string }>(),
+  ]);
+  return {
+    prev: prevResult?.published_date ?? null,
+    next: nextResult?.published_date ?? null,
+  };
 }
 
 /**
@@ -300,6 +314,9 @@ export async function searchDocuments(
         ? 'content_ru'
         : 'content_en';
 
+  // Escape LIKE wildcards to prevent injection via user input
+  const escaped = query.replace(/%/g, '\\%').replace(/_/g, '\\_');
+
   const { results } = await db
     .prepare(
       `SELECT d.*, i.published_date, i.volume, i.section, i.series
@@ -310,7 +327,7 @@ export async function searchDocuments(
        ORDER BY i.published_date DESC, d.page ASC
        LIMIT ?`,
     )
-    .bind(`%${query}%`, `%${query}%`, `%${query}%`, limit)
+    .bind(`%${escaped}%`, `%${escaped}%`, `%${escaped}%`, limit)
     .all<DocumentWithIssueRow>();
 
   return (results ?? []).map((r) => mapDocumentWithIssue(r, lang));

@@ -27,7 +27,7 @@ interface GdCatalogRawRecord {
  * Fetch the latest JSON resource URLs from GD Catalog
  */
 async function getResourceUrls(): Promise<string[]> {
-  const res = await fetch(RESOURCE_LIST_URL);
+  const res = await fetch(RESOURCE_LIST_URL, { signal: AbortSignal.timeout(25000) });
   if (!res.ok) throw new Error(`GD Catalog API error: ${res.status}`);
 
   const data = await res.json() as { result: { resources: GdCatalogResource[] } };
@@ -92,7 +92,7 @@ function mapSeries(thaiType: string): string {
  * Fetch and parse records from a single GD Catalog JSON resource
  */
 async function fetchResource(url: string): Promise<SourceRecord[]> {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(25000) });
   if (!res.ok) return [];
 
   const raw = await res.json() as GdCatalogRawRecord[];

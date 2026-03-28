@@ -15,11 +15,17 @@ const [dates, highlights] = await Promise.all([
   getHighlights(db, lang, 5),
 ]);
 
-// Fetch up to 5 document titles per date for preview
-const datePreviews = new Map<string, DocumentView[]>();
-for (const d of dates) {
-  const docs = await getDocumentsByDate(db, d.date, lang);
-  datePreviews.set(d.date, docs.slice(0, 5));
+// Fetch up to 5 document titles per date for preview (parallel)
+const datePreviews = await Promise.all(
+  dates.map(async (d) => ({
+    date: d.date,
+    totalCount: d.totalDocs,
+    docs: await getDocumentsByDate(db, d.date, lang),
+  }))
+);
+const datePreviewsMap = new Map<string, DocumentView[]>();
+for (const dp of datePreviews) {
+  datePreviewsMap.set(dp.date, dp.docs.slice(0, 5));
 }
 ---
 <Base>
@@ -70,7 +76,7 @@ for (const d of dates) {
     ) : (
       <div class="digest-dates">
         {dates.map((d) => {
-          const preview = datePreviews.get(d.date) ?? [];
+          const preview = datePreviewsMap.get(d.date) ?? [];
           const formattedDate = formatDate(d.date, lang);
           return (
             <section class="digest-day">

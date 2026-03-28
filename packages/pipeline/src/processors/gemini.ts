@@ -104,6 +104,7 @@ export async function translateBatch(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [{ parts: [{ text: userPrompt }] }],
@@ -116,7 +117,7 @@ export async function translateBatch(
   );
 
   if (!res.ok) {
-    const errText = await res.text();
+    const errText = (await res.text()).replace(/key=[^&\s]+/g, 'key=REDACTED');
     throw new Error(`Gemini API error ${res.status}: ${errText}`);
   }
 
@@ -126,7 +127,12 @@ export async function translateBatch(
 
   const tokensUsed = data.usageMetadata?.totalTokenCount ?? 0;
 
-  const parsed = JSON.parse(text);
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`Gemini returned invalid JSON. First 500 chars: ${text.substring(0, 500)}`);
+  }
   const validated = geminiResponseSchema.parse(parsed);
 
   return { translations: validated, tokensUsed };
@@ -145,6 +151,7 @@ export async function extractAndTranslatePdf(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: DOCUMENT_SYSTEM_PROMPT }] },
         contents: [{
@@ -167,7 +174,7 @@ export async function extractAndTranslatePdf(
   );
 
   if (!res.ok) {
-    const errText = await res.text();
+    const errText = (await res.text()).replace(/key=[^&\s]+/g, 'key=REDACTED');
     throw new Error(`Gemini API error ${res.status}: ${errText}`);
   }
 
@@ -177,7 +184,12 @@ export async function extractAndTranslatePdf(
 
   const tokensUsed = data.usageMetadata?.totalTokenCount ?? 0;
 
-  const parsed = JSON.parse(text);
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`Gemini returned invalid JSON. First 500 chars: ${text.substring(0, 500)}`);
+  }
   const validated = geminiDocumentResponseSchema.parse(parsed);
 
   return { document: validated, tokensUsed };

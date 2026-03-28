@@ -8,10 +8,11 @@ import type { Lang } from '@rtg/shared';
 interface Props {
   title?: string;
   description?: string;
+  noindex?: boolean;
 }
 
 const lang = getLangFromUrl(Astro.url) as Lang;
-const { title, description } = Astro.props;
+const { title, description, noindex } = Astro.props;
 const pageTitle = title ? `${title} | ${t(lang, 'site.title')}` : `${t(lang, 'site.title')} — ${t(lang, 'site.subtitle')}`;
 const pageDesc = description || t(lang, 'site.description');
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
@@ -23,6 +24,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{pageTitle}</title>
   <meta name="description" content={pageDesc}>
+  {noindex && <meta name="robots" content="noindex">}
 
   <link rel="canonical" href={canonicalUrl.href}>
   <link rel="alternate" hreflang="en" href={new URL(`/en${Astro.url.pathname.replace(/^\/(en|th|ru)/, '')}`, Astro.site).href}>
@@ -50,6 +52,8 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   })} />
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'">
 </head>
 <body>
   <a href="#main" class="skip-link">Skip to content</a>

@@ -48,6 +48,7 @@ export async function fetchFromCkan(apiKey?: string): Promise<SourceRecord[]> {
     headers: {
       'api-key': apiKey,
     },
+    signal: AbortSignal.timeout(25000),
   });
 
   if (!res.ok) return [];

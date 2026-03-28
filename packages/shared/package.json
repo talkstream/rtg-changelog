@@ -9,6 +9,9 @@
     "./constants": "./src/constants.ts",
     "./schema": "./src/schema.ts"
   },
+  "dependencies": {
+    "zod": "^4.3.0"
+  },
   "devDependencies": {
     "typescript": "^5.7.0"
   }

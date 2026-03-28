@@ -83,7 +83,7 @@ export interface DigestEntry {
 
 // V2: Full-text gazette types
 
-export type IssueStatus = 'pending' | 'processing' | 'complete' | 'error';
+export type IssueStatus = 'pending' | 'processing' | 'published' | 'error';
 export type DocumentType = 'law' | 'decree' | 'regulation' | 'announcement' | 'order';
 
 export interface GazetteIssue {

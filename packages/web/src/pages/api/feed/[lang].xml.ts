@@ -1,5 +1,6 @@
 import type { APIContext } from 'astro';
 import { getLatestDocuments } from '../../../lib/d1.ts';
+import { t } from '../../../i18n/index.ts';
 import type { Lang } from '@rtg/shared';
 import { SUPPORTED_LANGS } from '@rtg/shared';
 import { env } from 'cloudflare:workers';
@@ -39,7 +40,7 @@ export async function GET(context: APIContext): Promise<Response> {
   const feed = `<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="${lang}">
   <title>RTG Digest (${lang.toUpperCase()})</title>
-  <subtitle>Royal Thai Gazette — full document translations</subtitle>
+  <subtitle>${escapeXml(t(lang, 'site.description'))}</subtitle>
   <link href="https://rtg.center/${lang}/" rel="alternate" type="text/html"/>
   <link href="https://rtg.center/api/feed/${lang}.xml" rel="self" type="application/atom+xml"/>
   <id>urn:rtg:feed:${lang}</id>
