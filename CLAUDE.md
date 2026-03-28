@@ -54,6 +54,20 @@ ratchakitcha.soc.go.th behind Cloudflare (403 for curl/headless). Use Playwright
 - `pipeline_runs` — execution log
 - `raw_records` / `translations` / `digests` — v1 tables (backward compat, not used by web v3)
 
+## Security
+
+- `sanitize-html` on all Gemini AI content before `set:html` rendering
+- CSP: `script-src 'none'; frame-src 'none'` via meta tag
+- API keys redacted from error messages (`key=REDACTED`)
+- LIKE wildcard escaping in search queries
+- `AbortSignal.timeout(25000)` on all external fetch calls
+- Invalid dates return 404, search capped at 200 chars
+- `noreferrer` on all external links
+
 ## GitHub Actions
 
 - `fetch-pdfs.yml` — cron every 4 hours. Fetches metadata from GD Catalog (with retry), downloads PDFs via Playwright, uploads to R2.
+
+## Code Review Status (2026-03-28)
+
+31/31 issues fixed: 4 CRITICAL (XSS, OOM, zod dep, migration) + 10 HIGH (hash collision, timeouts, JSON safety, N+1, search escaping) + 10 MEDIUM (dead code, i18n, RSS, noindex) + 7 LOW (noreferrer, type=search, KV cleanup, etc). Zero backlog.
