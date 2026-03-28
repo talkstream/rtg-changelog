@@ -16,6 +16,7 @@ Monorepo with 3 packages:
 - `packages/shared` — Types, constants, Zod schemas
 - `packages/pipeline` — Cron Worker (every 1 min): picks unprocessed docs from D1, fetches PDF from R2, sends to Gemini for full text extraction + translation (TH→EN, TH→RU), stores result in D1. Processes 1 doc per tick.
 - `packages/web` — Astro 6 SSR, zero JS, i18n (EN/TH/RU), date-based daily digest navigation
+- `DESIGN.md` — Design system reference (colors, components, constraints, screenshots in `docs/design/`)
 
 ## Data Flow
 
